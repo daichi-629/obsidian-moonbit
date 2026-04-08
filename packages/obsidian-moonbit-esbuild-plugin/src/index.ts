@@ -1,10 +1,24 @@
-import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { basename, dirname, extname, isAbsolute, join, resolve } from "node:path";
-import type { Plugin as EsbuildPlugin, OnLoadArgs, OnResolveArgs } from "esbuild";
+import type { Plugin as EsbuildPlugin } from "esbuild";
+import type { EmbeddedMoonBitWasmGcModule, EmbeddedMoonBitWasmModule } from "@obsidian-moonbit/obsidian-moonbit";
+import {
+	findMoonProjectRoot,
+	pickBuiltWasmPath
+} from "./shared";
+import {
+	moonBitWasmEsbuildPlugin,
+	renderEmbeddedMoonBitWasmModule,
+	type MoonBitWasmEsbuildPluginOptions
+} from "./wasm";
+import {
+	moonBitWasmGcEsbuildPlugin,
+	parseAsyncExportNamesFromMoonInfoText,
+	readAsyncExportNames,
+	renderEmbeddedMoonBitWasmGcModule,
+	type MoonBitWasmGcEsbuildPluginOptions
+} from "./wasm-gc";
 
 export type MoonBitEsbuildPluginOptions = {
+	readonly target?: "wasm" | "wasm-gc";
 	readonly moonBinary?: string;
 	readonly moonBuildArgs?: readonly string[];
 	readonly targetDir?: string;
@@ -13,118 +27,37 @@ export type MoonBitEsbuildPluginOptions = {
 export function moonBitEsbuildPlugin(
 	options: MoonBitEsbuildPluginOptions = {}
 ): EsbuildPlugin {
-	const moonBinary = options.moonBinary ?? "moon";
-	const moonBuildArgs = options.moonBuildArgs ?? ["build", "--target", "wasm", "--nostd"];
-	const targetDir = options.targetDir ?? join("target", "wasm", "release", "build");
+	if (options.target === "wasm-gc") {
+		const wasmGcOptions: MoonBitWasmGcEsbuildPluginOptions = {
+			moonBinary: options.moonBinary,
+			moonBuildArgs: options.moonBuildArgs,
+			targetDir: options.targetDir
+		};
+		return moonBitWasmGcEsbuildPlugin(wasmGcOptions);
+	}
 
-	return {
-		name: "moonbit-esbuild-plugin",
-		setup(build) {
-			build.onResolve({ filter: /\.mbt$/ }, (args: OnResolveArgs) => {
-				const resolvedPath = isAbsolute(args.path)
-					? args.path
-					: resolve(args.resolveDir || process.cwd(), args.path);
-
-				return {
-					namespace: "moonbit-mbt",
-					path: resolvedPath
-				};
-			});
-
-			build.onLoad(
-				{ filter: /\.mbt$/, namespace: "moonbit-mbt" },
-				(args: OnLoadArgs) => {
-					const moonProjectRoot = findMoonProjectRoot(args.path);
-					runMoonBuild(moonBinary, moonBuildArgs, moonProjectRoot);
-
-					const builtWasmPath = pickBuiltWasmPath(resolve(moonProjectRoot, targetDir), args.path);
-					const wasmBytes = readFileSync(builtWasmPath);
-					const wasmHash = createHash("sha256").update(wasmBytes).digest("hex");
-					const suggestedFileName = `${basename(args.path, extname(args.path))}.wasm`;
-
-					return {
-						contents: renderEmbeddedMoonBitModule({
-							wasmBase64: wasmBytes.toString("base64"),
-							wasmHash,
-							suggestedFileName
-						}),
-						loader: "js",
-						resolveDir: dirname(args.path)
-					};
-				}
-			);
-		}
+	const wasmOptions: MoonBitWasmEsbuildPluginOptions = {
+		moonBinary: options.moonBinary,
+		moonBuildArgs: options.moonBuildArgs,
+		targetDir: options.targetDir
 	};
+	return moonBitWasmEsbuildPlugin(wasmOptions);
 }
 
-export function findMoonProjectRoot(entryFilePath: string): string {
-	let currentDirectory = dirname(resolve(entryFilePath));
+export {
+	findMoonProjectRoot,
+	moonBitWasmEsbuildPlugin,
+	moonBitWasmGcEsbuildPlugin,
+	parseAsyncExportNamesFromMoonInfoText,
+	pickBuiltWasmPath,
+	readAsyncExportNames,
+	renderEmbeddedMoonBitWasmGcModule,
+	renderEmbeddedMoonBitWasmModule
+};
 
-	while (true) {
-		if (existsSync(join(currentDirectory, "moon.mod.json"))) {
-			return currentDirectory;
-		}
-
-		const parentDirectory = dirname(currentDirectory);
-		if (parentDirectory === currentDirectory) {
-			throw new Error(`Could not find moon.mod.json for ${entryFilePath}`);
-		}
-		currentDirectory = parentDirectory;
-	}
-}
-
-export function pickBuiltWasmPath(buildDirectory: string, sourceFilePath: string): string {
-	const expectedBaseName = `${basename(sourceFilePath, extname(sourceFilePath))}.wasm`;
-	const wasmFileNames = readdirSync(buildDirectory)
-		.filter((entry) => entry.endsWith(".wasm"))
-		.sort();
-
-	if (wasmFileNames.length === 0) {
-		throw new Error(`No built wasm files found in ${buildDirectory}`);
-	}
-
-	const exactMatch = wasmFileNames.find((entry) => entry === expectedBaseName);
-	if (exactMatch) {
-		return resolve(buildDirectory, exactMatch);
-	}
-
-	if (wasmFileNames.length === 1) {
-		return resolve(buildDirectory, wasmFileNames[0]);
-	}
-
-	const newestMatch = wasmFileNames
-		.map((entry) => ({
-			entry,
-			mtimeMs: statSync(resolve(buildDirectory, entry)).mtimeMs
-		}))
-		.sort((left, right) => right.mtimeMs - left.mtimeMs)[0];
-
-	return resolve(buildDirectory, newestMatch.entry);
-}
-
-export function renderEmbeddedMoonBitModule(module: {
-	readonly wasmBase64: string;
-	readonly wasmHash: string;
-	readonly suggestedFileName: string;
-}): string {
-	return `const embeddedMoonBitModule = Object.freeze({
-  kind: "embedded-moonbit-module",
-  wasmBase64: ${JSON.stringify(module.wasmBase64)},
-  wasmHash: ${JSON.stringify(module.wasmHash)},
-  suggestedFileName: ${JSON.stringify(module.suggestedFileName)}
-});
-
-export default embeddedMoonBitModule;
-`;
-}
-
-function runMoonBuild(
-	moonBinary: string,
-	moonBuildArgs: readonly string[],
-	moonProjectRoot: string
-): void {
-	execFileSync(moonBinary, [...moonBuildArgs], {
-		cwd: moonProjectRoot,
-		stdio: "inherit"
-	});
-}
+export type {
+	EmbeddedMoonBitWasmGcModule,
+	EmbeddedMoonBitWasmModule,
+	MoonBitWasmEsbuildPluginOptions,
+	MoonBitWasmGcEsbuildPluginOptions
+};

@@ -4,8 +4,10 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
 	findMoonProjectRoot,
+	parseAsyncExportNamesFromMoonInfoText,
 	pickBuiltWasmPath,
-	renderEmbeddedMoonBitModule
+	renderEmbeddedMoonBitWasmGcModule,
+	renderEmbeddedMoonBitWasmModule
 } from "../src/index";
 
 describe("findMoonProjectRoot", () => {
@@ -33,14 +35,45 @@ describe("pickBuiltWasmPath", () => {
 	});
 });
 
-describe("renderEmbeddedMoonBitModule", () => {
-	it("renders the internal embedded artifact descriptor", () => {
+describe("renderEmbeddedMoonBitWasmModule", () => {
+	it("renders the wasm artifact descriptor", () => {
 		expect(
-			renderEmbeddedMoonBitModule({
+			renderEmbeddedMoonBitWasmModule({
 				wasmBase64: "AQID",
 				wasmHash: "hash",
 				suggestedFileName: "demo.wasm"
 			})
-		).toContain('kind: "embedded-moonbit-module"');
+		).toContain('kind: "embedded-moonbit-wasm-module"');
+	});
+});
+
+describe("renderEmbeddedMoonBitWasmGcModule", () => {
+	it("renders the wasm-gc artifact descriptor", () => {
+		expect(
+			renderEmbeddedMoonBitWasmGcModule({
+				entryPath: "cmd/main/main.mbt",
+				wasmBase64: "AQID",
+				wasmHash: "hash",
+				suggestedFileName: "main.wasm",
+				asyncExportNames: ["fetch_text"]
+			})
+		).toContain('kind: "embedded-moonbit-wasm-gc-module"');
+	});
+});
+
+describe("parseAsyncExportNamesFromMoonInfoText", () => {
+	it("extracts async exports from mooninfo output", () => {
+		expect(
+			parseAsyncExportNamesFromMoonInfoText(
+				[
+					"// Generated using `moon info`, DON'T EDIT IT",
+					'package "sample/cmd/main"',
+					"",
+					"pub async fn fetch_text(String) -> String",
+					"pub fn answer() -> Int",
+					""
+				].join("\n")
+			)
+		).toEqual(["fetch_text"]);
 	});
 });
