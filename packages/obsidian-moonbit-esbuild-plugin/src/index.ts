@@ -20,7 +20,7 @@ export function moonBitEsbuildPlugin(
 	return {
 		name: "moonbit-esbuild-plugin",
 		setup(build) {
-			build.onResolve({ filter: /\.mbt$/u }, (args: OnResolveArgs) => {
+			build.onResolve({ filter: /\.mbt$/ }, (args: OnResolveArgs) => {
 				const resolvedPath = isAbsolute(args.path)
 					? args.path
 					: resolve(args.resolveDir || process.cwd(), args.path);
@@ -32,7 +32,7 @@ export function moonBitEsbuildPlugin(
 			});
 
 			build.onLoad(
-				{ filter: /\.mbt$/u, namespace: "moonbit-mbt" },
+				{ filter: /\.mbt$/, namespace: "moonbit-mbt" },
 				(args: OnLoadArgs) => {
 					const moonProjectRoot = findMoonProjectRoot(args.path);
 					runMoonBuild(moonBinary, moonBuildArgs, moonProjectRoot);
