@@ -2,7 +2,8 @@ import type { Plugin as EsbuildPlugin } from "esbuild";
 import type { EmbeddedMoonBitWasmGcModule, EmbeddedMoonBitWasmModule } from "@obsidian-moonbit/obsidian-moonbit";
 import {
 	findMoonProjectRoot,
-	pickBuiltWasmPath
+	pickBuiltWasmPath,
+	resolveBuiltWasmDirectory
 } from "./shared";
 import {
 	moonBitWasmEsbuildPlugin,
@@ -19,6 +20,7 @@ import {
 
 export type MoonBitEsbuildPluginOptions = {
 	readonly target?: "wasm" | "wasm-gc";
+	readonly include?: (entryPath: string) => boolean;
 	readonly moonBinary?: string;
 	readonly moonBuildArgs?: readonly string[];
 	readonly targetDir?: string;
@@ -29,6 +31,7 @@ export function moonBitEsbuildPlugin(
 ): EsbuildPlugin {
 	if (options.target === "wasm-gc") {
 		const wasmGcOptions: MoonBitWasmGcEsbuildPluginOptions = {
+			include: options.include,
 			moonBinary: options.moonBinary,
 			moonBuildArgs: options.moonBuildArgs,
 			targetDir: options.targetDir
@@ -37,6 +40,7 @@ export function moonBitEsbuildPlugin(
 	}
 
 	const wasmOptions: MoonBitWasmEsbuildPluginOptions = {
+		include: options.include,
 		moonBinary: options.moonBinary,
 		moonBuildArgs: options.moonBuildArgs,
 		targetDir: options.targetDir
@@ -50,6 +54,7 @@ export {
 	moonBitWasmGcEsbuildPlugin,
 	parseAsyncExportNamesFromMoonInfoText,
 	pickBuiltWasmPath,
+	resolveBuiltWasmDirectory,
 	readAsyncExportNames,
 	renderEmbeddedMoonBitWasmGcModule,
 	renderEmbeddedMoonBitWasmModule

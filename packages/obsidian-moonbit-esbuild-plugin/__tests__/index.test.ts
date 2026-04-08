@@ -4,8 +4,10 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
 	findMoonProjectRoot,
+	moonBitEsbuildPlugin,
 	parseAsyncExportNamesFromMoonInfoText,
 	pickBuiltWasmPath,
+	resolveBuiltWasmDirectory,
 	renderEmbeddedMoonBitWasmGcModule,
 	renderEmbeddedMoonBitWasmModule
 } from "../src/index";
@@ -32,6 +34,18 @@ describe("pickBuiltWasmPath", () => {
 		expect(pickBuiltWasmPath(fixtureRoot, "/workspace/demo.mbt")).toBe(
 			join(fixtureRoot, "demo.wasm")
 		);
+	});
+});
+
+describe("resolveBuiltWasmDirectory", () => {
+	it("maps the source directory into the build tree", () => {
+		expect(
+			resolveBuiltWasmDirectory(
+				"/workspace/moonbit/target/wasm/release/build",
+				"/workspace/moonbit",
+				"/workspace/moonbit/cmd/wasm/main.mbt"
+			)
+		).toBe("/workspace/moonbit/target/wasm/release/build/cmd/wasm");
 	});
 });
 
@@ -75,5 +89,17 @@ describe("parseAsyncExportNamesFromMoonInfoText", () => {
 				].join("\n")
 			)
 		).toEqual(["fetch_text"]);
+	});
+});
+
+describe("moonBitEsbuildPlugin", () => {
+	it("passes include through to the target-specific plugin", () => {
+		const plugin = moonBitEsbuildPlugin({
+			include(entryPath) {
+				return entryPath.includes("/cmd/wasm/");
+			}
+		});
+
+		expect(plugin.name).toBe("moonbit-esbuild-plugin-wasm");
 	});
 });

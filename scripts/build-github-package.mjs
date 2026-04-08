@@ -167,6 +167,7 @@ import type { EmbeddedMoonBitWasmGcModule, EmbeddedMoonBitWasmModule } from "./r
 
 export type MoonBitEsbuildPluginOptions = {
 	readonly target?: "wasm" | "wasm-gc";
+	readonly include?: (entryPath: string) => boolean;
 	readonly moonBinary?: string;
 	readonly moonBuildArgs?: readonly string[];
 	readonly targetDir?: string;

@@ -5,11 +5,13 @@ import {
 	findMoonProjectRoot,
 	pickBuiltWasmPath,
 	readWasmArtifact,
+	resolveBuiltWasmDirectory,
 	resolveMoonSourcePath,
 	runMoonBuild
 } from "./shared";
 
 export type MoonBitWasmGcEsbuildPluginOptions = {
+	readonly include?: (entryPath: string) => boolean;
 	readonly moonBinary?: string;
 	readonly moonBuildArgs?: readonly string[];
 	readonly targetDir?: string;
@@ -18,6 +20,7 @@ export type MoonBitWasmGcEsbuildPluginOptions = {
 export function moonBitWasmGcEsbuildPlugin(
 	options: MoonBitWasmGcEsbuildPluginOptions = {}
 ): EsbuildPlugin {
+	const include = options.include ?? (() => true);
 	const moonBinary = options.moonBinary ?? "moon";
 	const moonBuildArgs = options.moonBuildArgs ?? ["build", "--target", "wasm-gc", "--nostd"];
 	const targetDir = options.targetDir ?? join("target", "wasm-gc", "release", "build");
@@ -25,10 +28,17 @@ export function moonBitWasmGcEsbuildPlugin(
 	return {
 		name: "moonbit-esbuild-plugin-wasm-gc",
 		setup(build) {
-			build.onResolve({ filter: /\.mbt$/ }, (args: OnResolveArgs) => ({
-				namespace: "moonbit-mbt-wasm-gc",
-				path: resolveMoonSourcePath(args.path, args.resolveDir)
-			}));
+			build.onResolve({ filter: /\.mbt$/ }, (args: OnResolveArgs) => {
+				const resolvedPath = resolveMoonSourcePath(args.path, args.resolveDir);
+				if (!include(resolvedPath)) {
+					return null;
+				}
+
+				return {
+					namespace: "moonbit-mbt-wasm-gc",
+					path: resolvedPath
+				};
+			});
 
 			build.onLoad(
 				{ filter: /\.mbt$/, namespace: "moonbit-mbt-wasm-gc" },
@@ -36,7 +46,11 @@ export function moonBitWasmGcEsbuildPlugin(
 					const moonProjectRoot = findMoonProjectRoot(args.path);
 					runMoonBuild(moonBinary, moonBuildArgs, moonProjectRoot);
 
-					const buildRoot = resolve(moonProjectRoot, targetDir);
+					const buildRoot = resolveBuiltWasmDirectory(
+						resolve(moonProjectRoot, targetDir),
+						moonProjectRoot,
+						args.path
+					);
 					const builtWasmPath = pickBuiltWasmPath(buildRoot, args.path);
 					const suggestedFileName = `${basename(args.path, extname(args.path))}.wasm`;
 					const wasmArtifact = readWasmArtifact(builtWasmPath);

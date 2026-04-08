@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { basename, dirname, extname, isAbsolute, resolve } from "node:path";
+import { basename, dirname, extname, isAbsolute, relative, resolve } from "node:path";
 
 export function findMoonProjectRoot(entryFilePath: string): string {
 	let currentDirectory = dirname(resolve(entryFilePath));
@@ -46,6 +46,14 @@ export function pickBuiltWasmPath(buildDirectory: string, sourceFilePath: string
 		.sort((left, right) => right.mtimeMs - left.mtimeMs)[0];
 
 	return resolve(buildDirectory, newestMatch.entry);
+}
+
+export function resolveBuiltWasmDirectory(
+	buildDirectory: string,
+	moonProjectRoot: string,
+	sourceFilePath: string
+): string {
+	return resolve(buildDirectory, dirname(relative(moonProjectRoot, sourceFilePath)));
 }
 
 export function resolveMoonSourcePath(path: string, resolveDir: string): string {
