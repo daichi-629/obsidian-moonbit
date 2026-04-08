@@ -20,10 +20,9 @@ export function findMoonProjectRoot(entryFilePath: string): string {
 }
 
 export function pickBuiltWasmPath(buildDirectory: string, sourceFilePath: string): string {
+	const wasmFilePaths = collectWasmFiles(buildDirectory);
 	const expectedBaseName = `${basename(sourceFilePath, extname(sourceFilePath))}.wasm`;
-	const wasmFileNames = readdirSync(buildDirectory)
-		.filter((entry) => entry.endsWith(".wasm"))
-		.sort();
+	const wasmFileNames = wasmFilePaths.map((path) => basename(path)).sort();
 
 	if (wasmFileNames.length === 0) {
 		throw new Error(`No built wasm files found in ${buildDirectory}`);
@@ -31,21 +30,21 @@ export function pickBuiltWasmPath(buildDirectory: string, sourceFilePath: string
 
 	const exactMatch = wasmFileNames.find((entry) => entry === expectedBaseName);
 	if (exactMatch) {
-		return resolve(buildDirectory, exactMatch);
+		return wasmFilePaths.find((path) => basename(path) === exactMatch) ?? resolve(buildDirectory, exactMatch);
 	}
 
 	if (wasmFileNames.length === 1) {
-		return resolve(buildDirectory, wasmFileNames[0]);
+		return wasmFilePaths[0];
 	}
 
-	const newestMatch = wasmFileNames
-		.map((entry) => ({
-			entry,
-			mtimeMs: statSync(resolve(buildDirectory, entry)).mtimeMs
+	const newestMatch = wasmFilePaths
+		.map((path) => ({
+			path,
+			mtimeMs: statSync(path).mtimeMs
 		}))
 		.sort((left, right) => right.mtimeMs - left.mtimeMs)[0];
 
-	return resolve(buildDirectory, newestMatch.entry);
+	return newestMatch.path;
 }
 
 export function resolveBuiltWasmDirectory(
@@ -53,7 +52,8 @@ export function resolveBuiltWasmDirectory(
 	moonProjectRoot: string,
 	sourceFilePath: string
 ): string {
-	return resolve(buildDirectory, dirname(relative(moonProjectRoot, sourceFilePath)));
+	const preferredDirectory = resolve(buildDirectory, dirname(relative(moonProjectRoot, sourceFilePath)));
+	return existsSync(preferredDirectory) ? preferredDirectory : buildDirectory;
 }
 
 export function resolveMoonSourcePath(path: string, resolveDir: string): string {
@@ -81,4 +81,23 @@ export function readWasmArtifact(wasmPath: string): {
 		wasmBase64: wasmBytes.toString("base64"),
 		wasmHash: createHash("sha256").update(wasmBytes).digest("hex")
 	};
+}
+
+function collectWasmFiles(buildDirectory: string): string[] {
+	const entries = readdirSync(buildDirectory, { withFileTypes: true });
+	const wasmFiles: string[] = [];
+
+	for (const entry of entries) {
+		const entryPath = resolve(buildDirectory, entry.name);
+		if (entry.isDirectory()) {
+			wasmFiles.push(...collectWasmFiles(entryPath));
+			continue;
+		}
+
+		if (entry.isFile() && entry.name.endsWith(".wasm")) {
+			wasmFiles.push(entryPath);
+		}
+	}
+
+	return wasmFiles.sort();
 }

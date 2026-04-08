@@ -35,17 +35,45 @@ describe("pickBuiltWasmPath", () => {
 			join(fixtureRoot, "demo.wasm")
 		);
 	});
+
+	it("finds wasm files in nested build directories", () => {
+		const fixtureRoot = join(tmpdir(), `moonbit-esbuild-${Date.now()}-nested`);
+		const nestedDirectory = join(fixtureRoot, "cmd", "wasm");
+		mkdirSync(nestedDirectory, { recursive: true });
+		writeFileSync(join(nestedDirectory, "demo.wasm"), "demo");
+
+		expect(pickBuiltWasmPath(fixtureRoot, "/workspace/demo.mbt")).toBe(
+			join(nestedDirectory, "demo.wasm")
+		);
+	});
 });
 
 describe("resolveBuiltWasmDirectory", () => {
 	it("maps the source directory into the build tree", () => {
+		const fixtureRoot = join(tmpdir(), `moonbit-esbuild-${Date.now()}-mapped-dir`);
+		const mappedDirectory = join(fixtureRoot, "cmd", "wasm");
+		mkdirSync(mappedDirectory, { recursive: true });
+
 		expect(
 			resolveBuiltWasmDirectory(
-				"/workspace/moonbit/target/wasm/release/build",
+				fixtureRoot,
 				"/workspace/moonbit",
 				"/workspace/moonbit/cmd/wasm/main.mbt"
 			)
-		).toBe("/workspace/moonbit/target/wasm/release/build/cmd/wasm");
+		).toBe(mappedDirectory);
+	});
+
+	it("falls back to the build root when the mapped directory does not exist", () => {
+		const fixtureRoot = join(tmpdir(), `moonbit-esbuild-${Date.now()}-build-root`);
+		mkdirSync(fixtureRoot, { recursive: true });
+
+		expect(
+			resolveBuiltWasmDirectory(
+				fixtureRoot,
+				"/workspace/moonbit",
+				"/workspace/moonbit/cmd/wasm/main.mbt"
+			)
+		).toBe(fixtureRoot);
 	});
 });
 
