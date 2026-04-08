@@ -5,10 +5,8 @@ import { describe, expect, it } from "vitest";
 import {
 	findMoonProjectRoot,
 	moonBitEsbuildPlugin,
-	parseAsyncExportNamesFromMoonInfoText,
 	pickBuiltWasmPath,
 	resolveBuiltWasmDirectory,
-	renderEmbeddedMoonBitWasmGcModule,
 	renderEmbeddedMoonBitWasmModule
 } from "../src/index";
 
@@ -86,37 +84,6 @@ describe("renderEmbeddedMoonBitWasmModule", () => {
 				suggestedFileName: "demo.wasm"
 			})
 		).toContain('kind: "embedded-moonbit-wasm-module"');
-	});
-});
-
-describe("renderEmbeddedMoonBitWasmGcModule", () => {
-	it("renders the wasm-gc artifact descriptor", () => {
-		expect(
-			renderEmbeddedMoonBitWasmGcModule({
-				entryPath: "cmd/main/main.mbt",
-				wasmBase64: "AQID",
-				wasmHash: "hash",
-				suggestedFileName: "main.wasm",
-				asyncExportNames: ["fetch_text"]
-			})
-		).toContain('kind: "embedded-moonbit-wasm-gc-module"');
-	});
-});
-
-describe("parseAsyncExportNamesFromMoonInfoText", () => {
-	it("extracts async exports from mooninfo output", () => {
-		expect(
-			parseAsyncExportNamesFromMoonInfoText(
-				[
-					"// Generated using `moon info`, DON'T EDIT IT",
-					'package "sample/cmd/main"',
-					"",
-					"pub async fn fetch_text(String) -> String",
-					"pub fn answer() -> Int",
-					""
-				].join("\n")
-			)
-		).toEqual(["fetch_text"]);
 	});
 });
 

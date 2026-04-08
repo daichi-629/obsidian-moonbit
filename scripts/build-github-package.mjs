@@ -68,14 +68,6 @@ export type EmbeddedMoonBitWasmModule = {
 	readonly imports?: MoonBitImports;
 };
 
-export type EmbeddedMoonBitWasmGcModule = {
-	readonly kind: "embedded-moonbit-wasm-gc-module";
-	readonly entryPath: string;
-	readonly suggestedFileName: string;
-	readonly wasmBase64: string;
-	readonly asyncExportNames?: readonly string[];
-};
-
 export type MoonBitCacheStore = {
 	readBinary(path: string): Promise<Uint8Array | null>;
 	writeBinary(path: string, binary: Uint8Array): Promise<void>;
@@ -86,17 +78,9 @@ export type LoadEmbeddedMoonBitWasmModuleOptions = {
 	readonly cacheStore: MoonBitCacheStore;
 };
 
-export type LoadEmbeddedMoonBitWasmGcModuleOptions = {
-	readonly imports: WebAssembly.Imports;
-};
-
 export declare function createEmbeddedMoonBitWasmModule(
 	module: EmbeddedMoonBitWasmModule
 ): EmbeddedMoonBitWasmModule;
-
-export declare function createEmbeddedMoonBitWasmGcModule(
-	module: EmbeddedMoonBitWasmGcModule
-): EmbeddedMoonBitWasmGcModule;
 
 export declare function loadEmbeddedMoonBitWasmModule<
 	TExports extends WebAssembly.Exports = WebAssembly.Exports
@@ -105,27 +89,10 @@ export declare function loadEmbeddedMoonBitWasmModule<
 	options: LoadEmbeddedMoonBitWasmModuleOptions
 ): Promise<TExports>;
 
-export declare function loadEmbeddedMoonBitWasmGcModule<TExports = WebAssembly.Exports>(
-	module: EmbeddedMoonBitWasmGcModule,
-	options: LoadEmbeddedMoonBitWasmGcModuleOptions
-): Promise<TExports>;
-
 export declare function buildMoonBitWasmCachePath(
 	cacheRoot: string,
 	module: Pick<EmbeddedMoonBitWasmModule, "suggestedFileName" | "wasmHash">
 ): string;
-
-export declare function getWasmGcCompileOptions(): {
-	readonly builtins: readonly string[];
-	readonly importedStringConstants: string;
-};
-
-export declare function wrapSuspendingImports(imports: WebAssembly.Imports): WebAssembly.Imports;
-
-export declare function wrapPromisingExports<TExports extends WebAssembly.Exports>(
-	exportsObject: TExports,
-	asyncExportNames: readonly string[]
-): TExports;
 
 export {
 	buildMoonBitWasmCachePath as buildMoonBitCachePath,
@@ -143,7 +110,7 @@ export type {
 	writeDeclaration(
 		"obsidian-api.d.ts",
 		`import type { Plugin } from "obsidian";
-import type { EmbeddedMoonBitWasmGcModule, EmbeddedMoonBitWasmModule } from "./runtime";
+import type { EmbeddedMoonBitWasmModule } from "./runtime";
 
 export declare function loadMoonBitWasm<
 	TExports extends WebAssembly.Exports = WebAssembly.Exports
@@ -152,22 +119,16 @@ export declare function loadMoonBitWasm<
 export declare function loadMoonBit<
 	TExports extends WebAssembly.Exports = WebAssembly.Exports
 >(plugin: Plugin, module: EmbeddedMoonBitWasmModule): Promise<TExports>;
-
-export declare function loadMoonBitWasmGc<TExports>(
-	plugin: Plugin,
-	module: EmbeddedMoonBitWasmGcModule
-): Promise<TExports>;
 `
 	);
 
 	writeDeclaration(
 		"esbuild-plugin.d.ts",
 		`import type { Plugin as EsbuildPlugin } from "esbuild";
-import type { EmbeddedMoonBitWasmGcModule, EmbeddedMoonBitWasmModule } from "./runtime";
+import type { EmbeddedMoonBitWasmModule } from "./runtime";
 
 export type MoonBitEsbuildPluginOptions = {
 	readonly buildMode?: "debug" | "release";
-	readonly target?: "wasm" | "wasm-gc";
 	readonly include?: (entryPath: string) => boolean;
 	readonly moonBinary?: string;
 	readonly moonBuildArgs?: readonly string[];
@@ -179,7 +140,7 @@ export declare function moonBitEsbuildPlugin(
 ): EsbuildPlugin;
 
 declare module "*.mbt" {
-	const embeddedMoonBitModule: EmbeddedMoonBitWasmModule | EmbeddedMoonBitWasmGcModule;
+	const embeddedMoonBitModule: EmbeddedMoonBitWasmModule;
 	export default embeddedMoonBitModule;
 }
 `

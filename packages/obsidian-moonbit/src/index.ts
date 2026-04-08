@@ -7,15 +7,6 @@ export {
 	type MoonBitCacheStore,
 	type MoonBitImports
 } from "./wasm";
-export {
-	createEmbeddedMoonBitWasmGcModule,
-	getWasmGcCompileOptions,
-	loadEmbeddedMoonBitWasmGcModule,
-	wrapPromisingExports,
-	wrapSuspendingImports,
-	type EmbeddedMoonBitWasmGcModule,
-	type LoadEmbeddedMoonBitWasmGcModuleOptions
-} from "./wasm-gc";
 
 export {
 	buildMoonBitWasmCachePath as buildMoonBitCachePath,
