@@ -3,6 +3,9 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, dirname, extname, isAbsolute, relative, resolve } from "node:path";
 
+const buildPromises = new Map<string, Promise<void>>();
+const projectBuildQueues = new Map<string, Promise<void>>();
+
 export function findMoonProjectRoot(entryFilePath: string): string {
 	let currentDirectory = dirname(resolve(entryFilePath));
 
@@ -64,10 +67,31 @@ export function runMoonBuild(
 	moonBinary: string,
 	moonBuildArgs: readonly string[],
 	moonProjectRoot: string
-): void {
-	execFileSync(moonBinary, [...moonBuildArgs], {
-		cwd: moonProjectRoot,
-		stdio: "inherit"
+): Promise<void> {
+	const buildKey = `${moonProjectRoot}:${moonBinary}:${moonBuildArgs.join("\u0000")}`;
+	const existingBuild = buildPromises.get(buildKey);
+	if (existingBuild) {
+		return existingBuild;
+	}
+
+	const queuedBuild = (projectBuildQueues.get(moonProjectRoot) ?? Promise.resolve()).then(() => {
+		execFileSync(moonBinary, [...moonBuildArgs], {
+			cwd: moonProjectRoot,
+			stdio: "inherit"
+		});
+	});
+
+	buildPromises.set(buildKey, queuedBuild);
+	projectBuildQueues.set(
+		moonProjectRoot,
+		queuedBuild.catch(() => undefined)
+	);
+
+	return queuedBuild.finally(() => {
+		buildPromises.delete(buildKey);
+		if (projectBuildQueues.get(moonProjectRoot) === queuedBuild) {
+			projectBuildQueues.delete(moonProjectRoot);
+		}
 	});
 }
 

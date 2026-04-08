@@ -42,9 +42,9 @@ export function moonBitWasmGcEsbuildPlugin(
 
 			build.onLoad(
 				{ filter: /\.mbt$/, namespace: "moonbit-mbt-wasm-gc" },
-				(args: OnLoadArgs) => {
+				async (args: OnLoadArgs) => {
 					const moonProjectRoot = findMoonProjectRoot(args.path);
-					runMoonBuild(moonBinary, moonBuildArgs, moonProjectRoot);
+					await runMoonBuild(moonBinary, moonBuildArgs, moonProjectRoot);
 
 					const buildRoot = resolveBuiltWasmDirectory(
 						resolve(moonProjectRoot, targetDir),

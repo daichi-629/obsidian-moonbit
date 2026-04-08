@@ -39,9 +39,9 @@ export function moonBitWasmEsbuildPlugin(
 				};
 			});
 
-			build.onLoad({ filter: /\.mbt$/, namespace: "moonbit-mbt-wasm" }, (args: OnLoadArgs) => {
+			build.onLoad({ filter: /\.mbt$/, namespace: "moonbit-mbt-wasm" }, async (args: OnLoadArgs) => {
 				const moonProjectRoot = findMoonProjectRoot(args.path);
-				runMoonBuild(moonBinary, moonBuildArgs, moonProjectRoot);
+				await runMoonBuild(moonBinary, moonBuildArgs, moonProjectRoot);
 
 				const artifactDirectory = resolveBuiltWasmDirectory(
 					resolve(moonProjectRoot, targetDir),
