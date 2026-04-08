@@ -10,6 +10,7 @@ import {
 } from "./shared";
 
 export type MoonBitWasmEsbuildPluginOptions = {
+	readonly buildMode?: "debug" | "release";
 	readonly include?: (entryPath: string) => boolean;
 	readonly moonBinary?: string;
 	readonly moonBuildArgs?: readonly string[];
@@ -19,10 +20,11 @@ export type MoonBitWasmEsbuildPluginOptions = {
 export function moonBitWasmEsbuildPlugin(
 	options: MoonBitWasmEsbuildPluginOptions = {}
 ): EsbuildPlugin {
+	const buildMode = options.buildMode ?? "release";
 	const include = options.include ?? (() => true);
 	const moonBinary = options.moonBinary ?? "moon";
-	const moonBuildArgs = options.moonBuildArgs ?? ["build", "--target", "wasm", "--nostd"];
-	const targetDir = options.targetDir ?? join("target", "wasm", "release", "build");
+	const moonBuildArgs = options.moonBuildArgs ?? defaultMoonBuildArgs(buildMode);
+	const targetDir = options.targetDir ?? defaultTargetDir(buildMode);
 
 	return {
 		name: "moonbit-esbuild-plugin-wasm",
@@ -79,4 +81,20 @@ export function renderEmbeddedMoonBitWasmModule(module: {
 
 export default embeddedMoonBitModule;
 `;
+}
+
+function defaultMoonBuildArgs(buildMode: "debug" | "release"): readonly string[] {
+	if (buildMode === "debug") {
+		return ["build", "--target", "wasm", "--nostd"];
+	}
+
+	return ["build", "--release", "--target-dir", "target", "--target", "wasm", "--nostd"];
+}
+
+function defaultTargetDir(buildMode: "debug" | "release"): string {
+	if (buildMode === "debug") {
+		return join("_build", "wasm", "debug", "build");
+	}
+
+	return join("target", "wasm", "release", "build");
 }

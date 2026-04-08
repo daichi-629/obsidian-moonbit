@@ -19,6 +19,7 @@ import {
 } from "./wasm-gc";
 
 export type MoonBitEsbuildPluginOptions = {
+	readonly buildMode?: "debug" | "release";
 	readonly target?: "wasm" | "wasm-gc";
 	readonly include?: (entryPath: string) => boolean;
 	readonly moonBinary?: string;
@@ -31,6 +32,7 @@ export function moonBitEsbuildPlugin(
 ): EsbuildPlugin {
 	if (options.target === "wasm-gc") {
 		const wasmGcOptions: MoonBitWasmGcEsbuildPluginOptions = {
+			buildMode: options.buildMode,
 			include: options.include,
 			moonBinary: options.moonBinary,
 			moonBuildArgs: options.moonBuildArgs,
@@ -40,6 +42,7 @@ export function moonBitEsbuildPlugin(
 	}
 
 	const wasmOptions: MoonBitWasmEsbuildPluginOptions = {
+		buildMode: options.buildMode,
 		include: options.include,
 		moonBinary: options.moonBinary,
 		moonBuildArgs: options.moonBuildArgs,

@@ -166,6 +166,7 @@ export declare function loadMoonBitWasmGc<TExports>(
 import type { EmbeddedMoonBitWasmGcModule, EmbeddedMoonBitWasmModule } from "./runtime";
 
 export type MoonBitEsbuildPluginOptions = {
+	readonly buildMode?: "debug" | "release";
 	readonly target?: "wasm" | "wasm-gc";
 	readonly include?: (entryPath: string) => boolean;
 	readonly moonBinary?: string;
