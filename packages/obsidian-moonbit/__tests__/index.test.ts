@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	buildMoonBitCachePath,
 	createEmbeddedMoonBitModule,
+	createEmbeddedMoonBitWasmGcModule,
+	getWasmGcCompileOptions,
 	loadEmbeddedMoonBitModule,
+	loadEmbeddedMoonBitWasmGcModule,
 	type MoonBitCacheStore
 } from "../src/index";
 
@@ -53,5 +56,34 @@ describe("loadEmbeddedMoonBitModule", () => {
 		expect(readBinary).toHaveBeenCalledTimes(2);
 		expect(instantiate).toHaveBeenCalledOnce();
 		expect(exportsObject.answer).toBe(42);
+	});
+});
+
+describe("loadEmbeddedMoonBitWasmGcModule", () => {
+	it("instantiates embedded wasm-gc modules with JS string compile options", async () => {
+		const instantiate = vi
+			.spyOn(WebAssembly, "instantiate")
+			.mockResolvedValue({ exports: { greet: () => "hello" } } as never);
+
+		const exportsObject = await loadEmbeddedMoonBitWasmGcModule<{ greet(): string }>(
+			createEmbeddedMoonBitWasmGcModule({
+				kind: "embedded-moonbit-wasm-gc-module",
+				entryPath: "cmd/wasm-gc/main.mbt",
+				wasmBase64: EMPTY_WASM_BASE64,
+				suggestedFileName: "main.wasm"
+			})
+		);
+
+		expect(instantiate).toHaveBeenCalledOnce();
+		expect(exportsObject.greet()).toBe("hello");
+	});
+});
+
+describe("getWasmGcCompileOptions", () => {
+	it("enables JS string builtins for wasm-gc modules", () => {
+		expect(getWasmGcCompileOptions()).toEqual({
+			builtins: ["js-string"],
+			importedStringConstants: "moonbit:constant_strings"
+		});
 	});
 });

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadMoonBit } from "../src/index";
+import { loadMoonBit, loadMoonBitWasmGc } from "../src/index";
 
 const EMPTY_WASM_BASE64 = "AGFzbQEAAAA=";
 const EMPTY_WASM_HASH = "2bf8b1254bbcbf63da4c6a048f8751df6a3385df4dddb4f190f1f9eb5dc51b98";
@@ -62,5 +62,26 @@ describe("loadMoonBit", () => {
 		expect(readBinary).toHaveBeenCalledOnce();
 		expect(instantiate).toHaveBeenCalledOnce();
 		expect(exportsObject.moonbit_answer()).toBe(42);
+	});
+});
+
+describe("loadMoonBitWasmGc", () => {
+	it("loads wasm-gc modules without requiring Obsidian imports", async () => {
+		const instantiate = vi
+			.spyOn(WebAssembly, "instantiate")
+			.mockResolvedValue({ exports: { greet: () => "hello" } } as never);
+
+		const exportsObject = await loadMoonBitWasmGc<{ greet(): string }>(
+			{} as never,
+			{
+				kind: "embedded-moonbit-wasm-gc-module",
+				entryPath: "cmd/wasm-gc/main.mbt",
+				wasmBase64: EMPTY_WASM_BASE64,
+				suggestedFileName: "main.wasm"
+			}
+		);
+
+		expect(instantiate).toHaveBeenCalledOnce();
+		expect(exportsObject.greet()).toBe("hello");
 	});
 });

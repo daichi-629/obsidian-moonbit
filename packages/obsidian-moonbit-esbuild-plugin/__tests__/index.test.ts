@@ -7,6 +7,7 @@ import {
 	moonBitEsbuildPlugin,
 	pickBuiltWasmPath,
 	resolveBuiltWasmDirectory,
+	renderEmbeddedMoonBitWasmGcModule,
 	renderEmbeddedMoonBitWasmModule
 } from "../src/index";
 
@@ -84,6 +85,19 @@ describe("renderEmbeddedMoonBitWasmModule", () => {
 				suggestedFileName: "demo.wasm"
 			})
 		).toContain('kind: "embedded-moonbit-wasm-module"');
+	});
+});
+
+describe("renderEmbeddedMoonBitWasmGcModule", () => {
+	it("renders the wasm-gc artifact descriptor", () => {
+		expect(
+			renderEmbeddedMoonBitWasmGcModule({
+				entryPath: "cmd/wasm-gc/main.mbt",
+				wasmBase64: "AQID",
+				wasmHash: "hash",
+				suggestedFileName: "main.wasm"
+			})
+		).toContain('kind: "embedded-moonbit-wasm-gc-module"');
 	});
 });
 
