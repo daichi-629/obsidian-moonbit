@@ -1,19 +1,39 @@
 {
-	"name": "obsidian-sample-monorepo-plugin",
-	"private": true,
+	"name": "obsidian-moonbit",
 	"version": "0.0.1",
 	"packageManager": "pnpm@10.14.0",
+	"type": "module",
+	"main": "dist/runtime.js",
+	"types": "dist/runtime.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/runtime.d.ts",
+			"default": "./dist/runtime.js"
+		},
+		"./obsidian-api": {
+			"types": "./dist/obsidian-api.d.ts",
+			"default": "./dist/obsidian-api.js"
+		},
+		"./esbuild-plugin": {
+			"types": "./dist/esbuild-plugin.d.ts",
+			"default": "./dist/esbuild-plugin.js"
+		}
+	},
+	"files": ["dist", "README.md", "LICENSE"],
+	"publishConfig": {
+		"access": "public"
+	},
+	"workspaces": ["packages/*"],
 	"scripts": {
-		"build": "pnpm -r run build",
-		"dev": "pnpm --filter plugin run dev",
-		"lint": "pnpm -r run lint",
-		"test": "pnpm -r run test",
+		"build:packages": "npm run build --workspaces --if-present",
+		"build": "npm run build:packages && node ./scripts/build-github-package.mjs",
+		"dev": "npm run dev --workspaces --if-present",
+		"lint": "npm run lint --workspaces --if-present",
+		"test": "npm run test --workspaces --if-present",
 		"format": "prettier -w .",
 		"format:check": "prettier -c .",
-		"version:bump": "node ./scripts/version-bump.mjs",
-		"version:patch": "pnpm run version:bump patch",
-		"version:minor": "pnpm run version:bump minor",
-		"version:major": "pnpm run version:bump major"
+		"typecheck": "npm run build --workspaces --if-present",
+		"prepare": "npm run build"
 	},
 	"devDependencies": {
 		"@types/node": "^25.2.2",

@@ -13,6 +13,7 @@ node_modules
 data.json
 
 # Builds
+dist
 packages/*/dist
 packages/plugin/main.js
 packages/plugin/main.js.map
