@@ -1,20 +1,20 @@
 ---
 name: obsidian-plugin-dev
-description: Guidance for implementing, refactoring, building, and releasing Obsidian community plugins. Use when work touches Obsidian plugin lifecycle code, `manifest.json`, `versions.json`, publishable plugin assets, hot-reload vault sync, or plugin code split across workspace packages such as `packages/plugin` and `packages/core`.
+description: Guidance for implementing, refactoring, packaging, and validating the Obsidian-facing MoonBit integration library in this repository. Use when work touches the Obsidian adapter, the consumer package surface, `.mbt` build integration, or package boundaries across the workspace.
 ---
 
 # Obsidian Plugin Dev
 
-Use this skill for reusable Obsidian plugin conventions in a workspace repository. Keep repo-specific workflow details in `AGENTS.md`, and load only the reference files that match the task.
+Use this skill for reusable Obsidian-facing conventions in the `obsidian-moonbit` workspace. Keep repository-specific rules in `AGENTS.md`, and load only the reference files that match the task.
 
 ## Workflow
 
-1. Decide whether the task is Obsidian-specific, monorepo-specific, or both.
-2. Read `references/obsidian-community-plugin.md` when changing plugin lifecycle code, commands, settings, manifests, release artifacts, or policy-sensitive behavior.
-3. Read `references/monorepo-layout.md` when changing package boundaries, workspace scripts, vault sync behavior, build output, or release/version flow in a monorepo.
-4. Keep Obsidian API code in the plugin package and move reusable non-Obsidian logic into shared packages.
-5. Preserve stable plugin contracts: plugin ID, command IDs, setting keys, and release artifacts.
-6. Validate with the relevant root `pnpm` scripts before finishing.
+1. Decide whether the task changes the core runtime, the Obsidian adapter, the esbuild integration, or the published root package surface.
+2. Read `references/obsidian-community-plugin.md` when changing the Obsidian adapter package, `loadMoonBit(...)`, plugin-facing examples, or other Obsidian API behavior.
+3. Read `references/monorepo-layout.md` when changing package boundaries, root exports, build scripts, install flow, or release packaging.
+4. Keep the public consumer API stable at `obsidian-moonbit`, `obsidian-moonbit/obsidian-api`, and `obsidian-moonbit/esbuild-plugin` unless the user explicitly wants an API break.
+5. Keep `packages/obsidian-moonbit` independent from the Obsidian API.
+6. Validate with the relevant root scripts before finishing, and check `npm pack --dry-run` when packaging changes.
 
 ## Reference files
 
